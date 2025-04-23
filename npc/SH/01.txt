@@ -1,0 +1,42 @@
+sh_fild01,202,159,3	script	Habitante#1	641,{
+mes "^FFFFFFUne habitante au regard anxieux vous observe.^000000";
+mes "Pardonnez-moi, aventurier... Avez-vous entendu les chuchotements qui courent dans la ville ?";
+next;
+mes "Il se dit que 'Les Ombres de la Nuit', ce gang de voleurs... ils sont de plus en plus audacieux. On craint pour nos biens, et même pour des choses bien plus précieuses.";
+next;
+mes "Leur chef, ce Maelstrom... Son nom seul suffit à semer le trouble. Certains murmurent qu'il pourrait se trouver n'importe où, sous n'importe quel déguisement.";
+next;
+mes "Si ces rumeurs vous intéressent, peut-être devriez-vous consulter Galdur. Il est un homme savant, toujours plongé dans ses grimoires. Je l'ai aperçu près de la fontaine, il y a peu.";
+set Informe_Galdur,1; // Variable indiquant que le joueur a été informé de Galdur
+close;
+}
+
+sh_fild01,202,156,3	script	Galdur#1	654,{
+mes "^FFFFFFUn mage, des parchemins anciens à la main, vous adresse un regard scrutateur.^000000";
+if (Informe_Galdur == 1) {
+    mes "Hmm... Un aventurier, si je ne m'abuse. On vous a donc parlé des récents murmures qui agitent notre paisible cité de Prontera ?";
+    next;
+    mes "Les agissements de ce Maelstrom et de sa bande... ils sont source d'une vive préoccupation. Les rumeurs d'un possible larcin visant le 'Cœur de Midgard' à la cathédrale se font de plus en plus insistantes.";
+    next;
+    mes "En tant qu'érudit, je m'efforce de comprendre la portée de telles menaces. J'ai senti... disons, une perturbation dans les flux magiques environnants. Des échos d'un passé lointain, impliquant un dragon ancien...";
+    next;
+    mes "La prudence est de mise. Agir précipitamment pourrait avoir des conséquences fâcheuses. Cependant, rester inactif n'est guère une option.";
+    select "Que savez-vous du 'Cœur de Midgard' ?",Coeur_Midgard,"Que peut-on faire concrètement ?",Que_faire,"Avez-vous d'autres informations sur Maelstrom ?",Info_Maelstrom;
+
+    Coeur_Midgard:
+        mes "Le 'Cœur de Midgard'... un artefact d'une puissance incommensurable, gardien d'une partie de l'énergie vitale de notre monde. Sa perte pourrait avoir des répercussions que nous ne pouvons qu'imaginer.";
+        close;
+
+    Que_faire:
+        mes "Dans l'immédiat... il nous faudrait obtenir des informations plus fiables. J'ai ouï dire qu'une certaine Lyra... autrefois liée à ces 'Ombres de la Nuit', pourrait détenir des connaissances précieuses. Son passé est complexe, mais son regard semble s'être tourné vers un autre chemin.";
+        set Quete_Parler_Lyra,1; // Variable indiquant que le joueur doit parler à Lyra
+        close;
+
+    Info_Maelstrom:
+        mes "Maelstrom... un esprit rusé et insaisissable [4]. Les récits de ses prouesses en matière de déguisement et de tromperie sont nombreux. Son ascension dans le monde criminel a été rapide et implacable [5, 6]. Ses motivations profondes restent obscures [7].";
+        close;
+} else {
+    mes "Bonjour voyageur. Puis-je vous être d'une quelconque utilité ?";
+    close;
+}
+}
