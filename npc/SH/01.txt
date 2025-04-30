@@ -1,42 +1,47 @@
 sh_fild01,202,159,3	script	Habitante#1	641,{
-mes "^FFFFFFUne habitante au regard anxieux vous observe.^000000";
+mes "^0e9deeUne habitante au regard anxieux vous observe.^000000";
 mes "Pardonnez-moi, aventurier... Avez-vous entendu les chuchotements qui courent dans la ville ?";
 next;
-mes "Il se dit que 'Les Ombres de la Nuit', ce gang de voleurs... ils sont de plus en plus audacieux. On craint pour nos biens, et mÃªme pour des choses bien plus prÃ©cieuses.";
+mes "Il se dit que 'Les Ombres de la Nuit', ce gang de voleurs... ils sont de plus en plus audacieux. On craint pour nos biens, et même pour des choses bien plus précieuses.";
 next;
-mes "Leur chef, ce Maelstrom... Son nom seul suffit Ã  semer le trouble. Certains murmurent qu'il pourrait se trouver n'importe oÃ¹, sous n'importe quel dÃ©guisement.";
-next;
-mes "Si ces rumeurs vous intÃ©ressent, peut-Ãªtre devriez-vous consulter Galdur. Il est un homme savant, toujours plongÃ© dans ses grimoires. Je l'ai aperÃ§u prÃ¨s de la fontaine, il y a peu.";
-set Informe_Galdur,1; // Variable indiquant que le joueur a Ã©tÃ© informÃ© de Galdur
+mes "Leur chef, ce Maelstrom... Son nom seul suffit à semer le trouble. Certains murmurent qu'il pourrait se trouver n'importe où, sous n'importe quel déguisement.";
+next;;
+mes "Si ces rumeurs vous intéressent, peut-être devriez-vous consulter Galdur. Il est un homme savant, toujours plongé dans ses grimoires. Je l'ai aperçu près de la fontaine, il y a peu.";
+set Informe_Galdur,1; // Variable indiquant que le joueur a été informé de Galdur
 close;
 }
 
-sh_fild01,202,156,3	script	Galdur#1	654,{
-mes "^FFFFFFUn mage, des parchemins anciens Ã  la main, vous adresse un regard scrutateur.^000000";
-if (Informe_Galdur == 1) {
-    mes "Hmm... Un aventurier, si je ne m'abuse. On vous a donc parlÃ© des rÃ©cents murmures qui agitent notre paisible citÃ© de Prontera ?";
-    next;
-    mes "Les agissements de ce Maelstrom et de sa bande... ils sont source d'une vive prÃ©occupation. Les rumeurs d'un possible larcin visant le 'CÅ“ur de Midgard' Ã  la cathÃ©drale se font de plus en plus insistantes.";
-    next;
-    mes "En tant qu'Ã©rudit, je m'efforce de comprendre la portÃ©e de telles menaces. J'ai senti... disons, une perturbation dans les flux magiques environnants. Des Ã©chos d'un passÃ© lointain, impliquant un dragon ancien...";
-    next;
-    mes "La prudence est de mise. Agir prÃ©cipitamment pourrait avoir des consÃ©quences fÃ¢cheuses. Cependant, rester inactif n'est guÃ¨re une option.";
-    select "Que savez-vous du 'CÅ“ur de Midgard' ?",Coeur_Midgard,"Que peut-on faire concrÃ¨tement ?",Que_faire,"Avez-vous d'autres informations sur Maelstrom ?",Info_Maelstrom;
-
-    Coeur_Midgard:
-        mes "Le 'CÅ“ur de Midgard'... un artefact d'une puissance incommensurable, gardien d'une partie de l'Ã©nergie vitale de notre monde. Sa perte pourrait avoir des rÃ©percussions que nous ne pouvons qu'imaginer.";
+sh_fild01,202,156,3	script	Galdur	654,{
+mes "^0e9deeUn mage avec des parchemins en main vous adresse un regard en coin.^000000";
+    if (Informe_Galdur == 1) {
+        mes "Hmm... Un aventurier, si je ne m'abuse. On vous a donc parlé des récents murmures qui agitent notre paisible cité de Prontera ?";
+        next;
+        mes "Les agissements de ce Maelstrom et de sa bande... ils sont source d'une vive préoccupation. Les rumeurs d'un possible larcin visant le 'Cœur de Midgard' à la cathédrale se font de plus en plus insistantes.";
+        next;
+        mes "En tant qu'érudit, je m'efforce de comprendre la portée de telles menaces. J'ai senti... disons, une perturbation dans les flux magiques environnants. Des échos d'un passé lointain, impliquant un dragon ancien...";
+        next;
+        mes "La prudence est de mise. Agir précipitamment pourrait avoir des conséquences fâcheuses. Cependant, rester inactif n'est guère une option.";
+        next;
+        switch(select("Que souhaitez-vous savoir ?","Que savez-vous du 'Cœur de Midgard' ?","Que peut-on faire concrètement ?","Avez-vous d'autres informations sur Maelstrom ?","Je n'ai pas d'autres questions.")) {
+            case 1:
+                mes "Le 'Cœur de Midgard'... un artefact d'une puissance incommensurable, gardien d'une partie de l'énergie vitale de notre monde. Sa perte pourrait avoir des répercussions que nous ne pouvons qu'imaginer.";
+                close;
+            case 2:
+                mes "Dans l'immédiat... il nous faudrait obtenir des informations plus fiables. J'ai ouï dire qu'une certaine Lyra... autrefois liée à ces 'Ombres de la Nuit', pourrait détenir des connaissances précieuses. Son passé est complexe, mais son regard semble s'être tourné vers un autre chemin.";
+                set Quete_Parler_Lyra,1; // Variable indiquant que le joueur doit parler à Lyra
+                close;
+            case 3:
+                mes "Maelstrom... un esprit rusé et insaisissable [4]. Les récits de ses prouesses en matière de déguisement et de tromperie sont nombreux. Son ascension dans le monde criminel a été rapide et implacable [5, 6]. Ses motivations profondes restent obscures [7].";
+                close;
+            case 4:
+                mes "Très bien. Si vous avez d'autres questions, n'hésitez pas à revenir me voir.";
+                close;
+			case 5:
+                mes "Très bien. Si vous avez d'autres questions, n'hésitez pas à revenir me voir.";
+                close;
+        }
+    } else {
+        mes "Bonjour voyageur. Puis-je vous être d'une quelconque utilité ?";
         close;
-
-    Que_faire:
-        mes "Dans l'immÃ©diat... il nous faudrait obtenir des informations plus fiables. J'ai ouÃ¯ dire qu'une certaine Lyra... autrefois liÃ©e Ã  ces 'Ombres de la Nuit', pourrait dÃ©tenir des connaissances prÃ©cieuses. Son passÃ© est complexe, mais son regard semble s'Ãªtre tournÃ© vers un autre chemin.";
-        set Quete_Parler_Lyra,1; // Variable indiquant que le joueur doit parler Ã  Lyra
-        close;
-
-    Info_Maelstrom:
-        mes "Maelstrom... un esprit rusÃ© et insaisissable [4]. Les rÃ©cits de ses prouesses en matiÃ¨re de dÃ©guisement et de tromperie sont nombreux. Son ascension dans le monde criminel a Ã©tÃ© rapide et implacable [5, 6]. Ses motivations profondes restent obscures [7].";
-        close;
-} else {
-    mes "Bonjour voyageur. Puis-je vous Ãªtre d'une quelconque utilitÃ© ?";
-    close;
-}
+    }
 }

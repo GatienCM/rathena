@@ -1,0 +1,186 @@
+https://console.cloud.google.com/vertex-ai/studio/multimodal?model=gemini-2.5-pro-preview-03-25&hl=fr&pli=1
+
+Bienvenue dans Vertex AI Studio.
+
+Voici un exemple fonctionnel que tu pourras adapter et étendre selon tes besoins spécifiques. Ce script comprend :
+
+La Détection de Monstres : Il utilise l'événement OnPCKillEvent pour détecter quand un joueur tue un monstre.
+L'Attribution de Points : Il vérifie si le monstre tué fait partie de la liste configurée et attribue des points de réputation au joueur.
+Le Stockage des Points : Les points sont stockés dans une variable de joueur permanente (@reputation_points).
+Le Marchand de Réputation : Un PNJ (NPC) qui affiche les points du joueur et propose des objets en échange.
+La Configuration Facile : Les monstres, les points attribués, les objets et leurs coûts sont définis au début du script pour une modification aisée.
+
+//===== Script de Système de Réputation par Monstre =====
+//===== Auteur: Ton Assistant IA (pour Game Master) =====
+//===== Version: 1.0 =====
+//===== Émulateur: rAthena =====
+
+// ----- Configuration -----
+// Variable joueur pour stocker les points de réputation
+.@ReputationVariable$ = "@reputation_points";
+
+// Liste des monstres donnant de la réputation et les points associés
+// Format: MonsterID, Points; MonsterID, Points; ...
+.@MonsterRepList = { 1002,1,  1037,2,  1115,5,  1018,1 }; // Poring:1pt, Rocker:2pts, Poporing:1pt, Marin:5pts (Exemples)
+
+// Liste des objets vendus par le marchand de réputation
+// Format: ItemID, CoutReputation, NomAffiché; ItemID, CoutReputation, NomAffiché; ...
+.@ShopItems = { 501,10,"Pomme",  1201,50,"Aile de Mouche",  607,250,"Potion Blanche" }; // Exemples
+
+// --- Fin de la Configuration ---
+
+// ----- PNJ Marchand de Réputation -----
+prontera,155,185,4    script    Marchand de Réputation    888,{
+
+    mes "[Marchand de Réputation]";
+    mes "Bonjour, " + strcharinfo(0) + ".";
+
+    // Récupère les points actuels du joueur. Initialise à 0 si la variable n'existe pas.
+    .@current_rep =.@PlayerRepVar;
+    if ( .@current_rep == 0 && readparam(.@ReputationVariable$) != "" ) // Vérifie si c'est vraiment 0 ou juste non initialisé
+        .@current_rep = atoi(readparam(.@ReputationVariable$));
+
+    mes "Votre dévouement envers notre cause est apprécié.";
+    mes "Vous avez actuellement ^0000FF" + .@current_rep + "^000000 point(s) de réputation.";
+    mes "Souhaitez-vous échanger vos points contre des récompenses ?";
+    next;
+
+    menu "Voir les récompenses",L_Shop,"En savoir plus",L_Info,"Partir",L_Close;
+
+L_Shop:
+    mes "[Marchand de Réputation]";
+    mes "Voici ce que je peux vous offrir en échange de votre loyauté :";
+    mes "Vous avez ^0000FF" + .@current_rep + "^000000 point(s).";
+
+    .@menu$ = "";
+    .@item_count = getarraysize(.@ShopItems);
+    for ( .@i = 0; .@i < .@item_count; .@i = .@i + 3 ) {
+        .@menu$ = .@menu$ + .@ShopItems[.@i+2] + " (" + .@ShopItems[.@i+1] + " pts):";
+    }
+    .@menu$ = .@menu$ + "Annuler";
+
+    select(.@menu$);
+
+    if ( $@selected == (.@item_count / 3) + 1 ) { // Option "Annuler"
+        goto L_Close;
+    }
+
+    .@choice_index = ($@selected - 1) * 3;
+    .@item_id = .@ShopItems[.@choice_index];
+    .@item_cost = .@ShopItems[.@choice_index+1];
+    .@item_name$ = .@ShopItems[.@choice_index+2];
+
+    mes "[Marchand de Réputation]";
+    if ( .@current_rep < .@item_cost ) {
+        mes "Désolé, vous n'avez pas assez de points pour obtenir '" + .@item_name$ + "'.";
+        mes "Il vous manque ^FF0000" + (.@item_cost - .@current_rep) + "^000000 point(s).";
+        next;
+        goto L_Shop; // Retourne à la boutique
+    }
+
+    // Vérification de poids/place (optionnel mais recommandé)
+    // getiteminfo(item_id, 2) -> poids de l'item
+    // if( Weight + getiteminfo(.@item_id, 2) > MaxWeight ) { ... }
+
+    mes "Voulez-vous vraiment échanger ^0000FF" + .@item_cost + "^000000 points contre '" + .@item_name$ + "' ?";
+    next;
+    menu "Oui", L_ConfirmPurchase, "Non", L_Shop;
+
+L_ConfirmPurchase:
+    // Déduire les points
+    .@new_rep = .@current_rep - .@item_cost;
+    setparam .@ReputationVariable$, .@new_rep;
+
+    // Donner l'objet
+    getitem .@item_id, 1;
+
+    mes "[Marchand de Réputation]";
+    mes "Merci pour votre contribution ! Voici votre récompense.";
+    mes "Il vous reste ^0000FF" + .@new_rep + "^000000 point(s).";
+    next;
+    goto L_Shop; // Retourne à la boutique pour d'autres achats
+
+L_Info:
+    mes "[Marchand de Réputation]";
+    mes "Gagnez des points de réputation en éliminant certaines créatures qui menacent notre région.";
+    mes "Plus la créature est dangereuse ou rare, plus la récompense en points sera élevée.";
+    mes "Revenez me voir quand vous aurez accumulé assez de points !";
+    close;
+
+L_Close:
+    mes "[Marchand de Réputation]";
+    mes "Revenez quand vous voudrez ! Votre aide est précieuse.";
+    close;
+
+OnInit:
+    // Stocke les variables de configuration dans les variables du PNJ pour un accès plus facile
+    set .@ReputationVariable$, .@ReputationVariable$;
+    copyarray .@MonsterRepList,.@MonsterRepList,getarraysize(.@MonsterRepList);
+    copyarray .@ShopItems,.@ShopItems,getarraysize(.@ShopItems);
+    // Stocke la variable de réputation du joueur dans une variable PNJ temporaire
+    .@PlayerRepVar = getvariableofpc(readparam(.@ReputationVariable$), getcharid(3));
+    end;
+}
+
+// ----- Événement de Mort de Monstre -----
+-    script    ReputationKillEvent    -1,{
+OnPCKillEvent:
+    .@killed_mob_id = killed_rid; // Récupère l'ID du monstre tué
+
+    // Parcourt la liste des monstres configurés
+    .@mob_list_size = getarraysize(.@MonsterRepList);
+    for ( .@i = 0; .@i < .@mob_list_size; .@i = .@i + 2 ) {
+        if ( .@MonsterRepList[.@i] == .@killed_mob_id ) {
+            .@points_to_add = .@MonsterRepList[.@i+1];
+
+            // Récupère les points actuels du joueur
+            .@current_rep = atoi(getglobalreg(strcharinfo(0)+"::"+.@ReputationVariable$)); // Alternative plus sûre aux variables directes si beaucoup de scripts
+            // ou simplement : .@current_rep = readparam(.@ReputationVariable$); si pas de risque de conflit
+
+             // Ajoute les nouveaux points
+            .@new_rep = .@current_rep + .@points_to_add;
+
+            // Met à jour la variable du joueur
+            setparam .@ReputationVariable$, .@new_rep;
+
+             // Informe le joueur (message discret en bas de l'écran)
+            dispbottom "Vous avez gagné " + .@points_to_add + " point(s) de réputation ! Total : " + .@new_rep;
+
+            end; // Sort de l'événement une fois le monstre trouvé et les points attribués
+        }
+    }
+    end; // Fin de l'événement si le monstre tué n'est pas dans la liste
+
+OnInit:
+    // Stocke les variables de configuration globales pour l'événement
+    set .@ReputationVariable$, .@ReputationVariable$;
+    copyarray .@MonsterRepList,.@MonsterRepList,getarraysize(.@MonsterRepList);
+    end;
+}
+
+
+
+Explication et Comment Utiliser :
+
+Copier/Coller : Copiez l'intégralité de ce code dans un fichier texte avec l'extension .txt (par exemple, npc/custom/reputation_system.txt).
+Configuration :
+Modifiez la section // ----- Configuration -----.
+.@ReputationVariable$: Changez le nom si @reputation_points est déjà utilisé par un autre script. Choisissez quelque chose d'unique.
+.@MonsterRepList: Ajoutez ou modifiez les paires MonsterID, Points. Vous pouvez trouver les Monster IDs dans la base de données de votre serveur (ou sur des sites comme Divine Pride).
+.@ShopItems: Ajoutez ou modifiez les triplets ItemID, CoutReputation, NomAffiché. NomAffiché est juste pour le menu, l'ItemID réel est utilisé pour getitem.
+Chargement du Script :
+Ajoutez le chemin de votre fichier script (par rapport au dossier npc/) dans le fichier npc/scripts_custom.conf (ou un fichier de configuration similaire chargé par votre serveur). Par exemple : npc: npc/custom/reputation_system.txt
+Redémarrez votre serveur rAthena ou utilisez la commande @reloadscript en jeu (si vous avez les permissions GM).
+Tester :
+Allez aux coordonnées du PNJ (Prontera 155,185 dans cet exemple) et interagissez avec lui.
+Tuez un des monstres configurés (Poring, Rocker, etc.). Vous devriez voir le message dispbottom et vos points devraient augmenter lorsque vous reparlez au PNJ.
+Essayez d'acheter un objet.
+Points Importants & Améliorations Possibles :
+
+Persistance : Les variables de joueur (set @variable,...) sont normalement persistantes (sauvegardées avec le personnage). setparam est une alternative plus moderne et parfois préférée pour la gestion des variables de compte/personnage. J'ai utilisé setparam ici, ce qui est une bonne pratique.
+Sécurité/Conflits : Assurez-vous que le nom de la variable (.@ReputationVariable$) est unique pour éviter les conflits avec d'autres scripts personnalisés.
+Base de Données : Pour des systèmes très importants ou complexes, certains développeurs préfèrent stocker ce genre de points directement dans la base de données SQL pour plus de robustesse, mais pour un système de réputation simple, les variables de joueur sont suffisantes et plus faciles à gérer via script.
+Feedback Visuel : Vous pourriez ajouter des effets visuels ou sonores quand un joueur gagne des points.
+Niveaux de Réputation : Vous pourriez étendre le système pour avoir des "niveaux" de réputation débloquant différents paliers d'objets ou donnant des bonus passifs.
+Quêtes : Intégrer ce système avec des quêtes répétables qui demandent de tuer X monstres spécifiques pour un gain de réputation bonus.
+Vérification d'Inventaire : Ajouter une vérification explicite du poids (Weight/MaxWeight) et du nombre d'objets (countitem) avant de donner l'item pour éviter des problèmes si l'inventaire est plein.

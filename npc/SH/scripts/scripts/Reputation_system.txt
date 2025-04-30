@@ -1,0 +1,180 @@
+// Script Name: Reputation_System.txt
+// Description: Système de réputation avec données stockées en base de données.
+// Version: 2.0
+// Author: TonNom
+
+// Définition des niveaux de réputation.
+#define REP_LEVEL_NEUTRAL 0
+#define REP_LEVEL_APPRENTICE 1
+#define REP_LEVEL_ADEPT 2
+#define REP_LEVEL_EXPERT 3
+#define REP_LEVEL_MASTER 4
+
+// Points requis pour chaque niveau (personnalisable).
+set .@max_reputation_points[REP_LEVEL_APPRENTICE], 100;
+set .@max_reputation_points[REP_LEVEL_ADEPT], 300;
+set .@max_reputation_points[REP_LEVEL_EXPERT], 600;
+set .@max_reputation_points[REP_LEVEL_MASTER], 1000;
+
+// Fonction pour charger la réputation depuis la base de données.
+function loadReputation {
+    set .@char_id, $@arg[0];
+    
+    // Récupérer les données de réputation depuis la base de données.
+    query_sql "SELECT `reputation_level`, `reputation_points` FROM `reputation` WHERE `char_id` = '" + .@char_id + "'", .@reputation_level, .@reputation_points;
+
+    // Si le joueur n'a pas de données dans la base de données, initialiser à zéro.
+    if (strcharinfo(3) == 0) {
+        set .@reputation_level, REP_LEVEL_NEUTRAL;
+        set .@reputation_points, 0;
+        query_sql "INSERT INTO `reputation` (`char_id`, `reputation_level`, `reputation_points`) VALUES ('" + .@char_id + "', '" + .@reputation_level + "', '" + .@reputation_points + "')";
+    }
+
+    // Charger les données dans les variables de script.
+    set .@reputation_level[.@char_id], .@reputation_level;
+    set .@reputation_points[.@char_id], .@reputation_points;
+    
+    return;
+}
+
+// Fonction pour sauvegarder la réputation dans la base de données.
+function saveReputation {
+    set .@char_id, $@arg[0];
+
+    // Mettre à jour la base de données avec les données actuelles.
+    query_sql "UPDATE `reputation` SET `reputation_level` = '" + .@reputation_level[.@char_id] + "', `reputation_points` = '" + .@reputation_points[.@char_id] + "' WHERE `char_id` = '" + .@char_id + "'";
+    return;
+}
+
+// Fonction pour ajouter de la réputation.
+function addReputation {
+    set .@char_id, $@arg[0];
+    set .@amount, $@arg[1];
+
+    // Charger la réputation depuis la base de données si elle n'est pas déjà chargée.
+    if (!.@reputation_level[.@char_id])
+        callfunc "loadReputation", .@char_id;
+
+    set .@reputation_points[.@char_id], .@reputation_points[.@char_id] + .@amount;
+    
+    // Vérification du niveau de réputation.
+    while (.@reputation_level[.@char_id] < 4 && .@reputation_points[.@char_id] >= .@max_reputation_points[.@reputation_level[.@char_id] + 1]) {
+        set .@reputation_level[.@char_id], .@reputation_level[.@char_id] + 1;
+        mes "Félicitations ! Votre niveau de réputation a augmenté.";
+        mes "Vous êtes maintenant niveau " + .@reputation_level[.@char_id] + ".";
+    }
+    
+    mes "Vous avez gagné " + .@amount + " points de réputation.";
+    mes "Réputation actuelle : " + .@reputation_points[.@char_id] + " / " + .@max_reputation_points[.@reputation_level[.@char_id] + 1] + ".";
+    
+    // Sauvegarder la réputation dans la base de données.
+    callfunc "saveReputation", .@char_id;
+    
+    return;
+}
+
+// Fonction pour obtenir le niveau de réputation.
+function getReputationLevel {
+    set .@char_id, $@arg[0];
+    // Charger la réputation depuis la base de données si elle n'est pas déjà chargée.
+    if (!.@reputation_level[.@char_id])
+        callfunc "loadReputation", .@char_id;
+    return .@reputation_level[.@char_id];
+}
+
+// Fonction pour obtenir les points de réputation.
+function getReputationPoints {
+    set .@char_id, $@arg[0];
+    // Charger la réputation depuis la base de données si elle n'est pas déjà chargée.
+    if (!.@reputation_level[.@char_id])
+        callfunc "loadReputation", .@char_id;
+    return .@reputation_points[.@char_id];
+}
+
+// Evenement OnPCKillEvent
+// Ajoute de la réputation quand un joueur tue un monstre spécifié
+OnPCKillEvent:
+    set .@char_id, getcharid(0);
+    
+    if (.@monster_reputation[killedrid] > 0) {
+        callfunc "addReputation", .@char_id, .@monster_reputation[killedrid];
+    }
+    end;
+
+// Configuration des monstres qui donnent de la réputation (ID du monstre => points de réputation).
+set .@monster_reputation[1002], 5;    // Poring donne 5 points de réputation
+set .@monster_reputation[1004], 10;   // Mandragora donne 10 points de réputation
+set .@monster_reputation[1086], 20;   // Wolf donne 20 points de réputation
+
+// Au chargement du personnage, charger sa réputation depuis la base de données.
+OnPCLoginEvent:
+    callfunc "loadReputation", getcharid(0);
+    end;
+
+// Avant la déconnexion du personnage, sauvegarder sa réputation dans la base de données.
+OnPCLogoutEvent:
+    callfunc "saveReputation", getcharid(0);
+    end;
+
+// NPC de base pour interagir avec le système de réputation.
+NPC_Reputation,npc/custom/reputation_manager,100,100,0	script	Gestionnaire de Réputation	864,{
+    mes "Bonjour ! Je suis le gestionnaire de réputation.";
+    mes "Que puis-je faire pour vous ?";
+    
+    menu "Voir ma réputation",L_REPUTATION_INFO,"Quêtes disponibles",L_QUESTS,"Marchand de réputation",L_MERCHANT,"Au revoir";
+
+    L_REPUTATION_INFO:
+        mes "Votre niveau de réputation est : " + callfunc("getReputationLevel", getcharid(0)) + ".";
+        mes "Vos points de réputation actuels : " + callfunc("getReputationPoints", getcharid(0)) + ".";
+        close;
+
+    L_QUESTS:
+        // Ici, vous pouvez ajouter des options de quêtes en fonction du niveau de réputation.
+        switch (callfunc("getReputationLevel", getcharid(0))) {
+            case REP_LEVEL_NEUTRAL:
+                mes "Vous devez gagner en réputation pour débloquer des quêtes.";
+                break;
+            case REP_LEVEL_APPRENTICE:
+                mes "Vous avez débloqué des quêtes de niveau Apprenti.";
+                // Ajoutez ici les options de quêtes pour ce niveau.
+                break;
+            case REP_LEVEL_ADEPT:
+                mes "Vous avez débloqué des quêtes de niveau Adepte.";
+                // Ajoutez ici les options de quêtes pour ce niveau.
+                break;
+            case REP_LEVEL_EXPERT:
+                mes "Vous avez débloqué des quêtes de niveau Expert.";
+                // Ajoutez ici les options de quêtes pour ce niveau.
+                break;
+            case REP_LEVEL_MASTER:
+                mes "Vous avez débloqué des quêtes de niveau Maître.";
+                // Ajoutez ici les options de quêtes pour ce niveau.
+                break;
+        }
+        close;
+
+    L_MERCHANT:
+        // Ici, vous pouvez ajouter des options de marchand en fonction du niveau de réputation.
+        switch (callfunc("getReputationLevel", getcharid(0))) {
+            case REP_LEVEL_NEUTRAL:
+                mes "Vous n'avez pas assez de réputation pour accéder à ce marchand.";
+                close;
+            case REP_LEVEL_APPRENTICE:
+                mes "Bienvenue, Apprenti ! Voici les articles disponibles :";
+                // Ajoutez ici les options d'achat pour ce niveau.
+                break;
+            case REP_LEVEL_ADEPT:
+                mes "Bienvenue, Adepte ! Voici les articles disponibles :";
+                // Ajoutez ici les options d'achat pour ce niveau.
+                break;
+            case REP_LEVEL_EXPERT:
+                mes "Bienvenue, Expert ! Voici les articles disponibles :";
+                // Ajoutez ici les options d'achat pour ce niveau.
+                break;
+            case REP_LEVEL_MASTER:
+                mes "Bienvenue, Maître ! Voici les articles disponibles :";
+                // Ajoutez ici les options d'achat pour ce niveau.
+                break;
+        }
+        close;
+}

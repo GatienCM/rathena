@@ -1,0 +1,18 @@
+// Script Name: Library_NPC.txt
+// Description: PNJ qui affiche la librairie globale des technologies découvertes.
+// Version: 1.0
+// Author: TonNom
+
+prontera,170,180,4	script	Libraire	867,{
+    mes "Bienvenue à la librairie !";
+    mes "Ici, vous pouvez consulter les technologies qui ont été découvertes par les aventuriers.";
+
+    menu "Consulter la librairie",L_SHOW_LIBRARY,"Au revoir",L_END;
+
+    L_SHOW_LIBRARY:
+        callfunc "showLibrary";
+        close;
+
+    L_END:
+        close;
+}

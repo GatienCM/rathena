@@ -1,0 +1,84 @@
+// Script Name: librairie.txt
+// Description: PNJ qui affiche la librairie globale des technologies découvertes (avec UI simplifiée).
+// Version: 2.0
+// Author: TonNom
+
+prontera,170,180,4    script    Libraire    654,{
+
+	OnInit:
+	{
+		.@total_discoveries = 0;
+		.@i = 0;
+		.@page_size = 0;
+		.@total_pages = 0;
+		.@current_page = 0;
+		.@choice = 0;
+	}
+
+	mes "Bienvenue à la librairie !";
+	mes "Ici, vous pouvez consulter les technologies qui ont été découvertes par les aventuriers.";
+
+	set .@total_discoveries, 0;
+	set .@i, 1;
+	while(.@library_items$[.@i] != 0){
+		set .@total_discoveries, .@total_discoveries + 1;
+		set .@i, .@i + 1;
+	}
+
+	set .@page_size, 5; // Nombre de découvertes par page
+	set .@total_pages, ceil((double).@total_discoveries / .@page_size);
+	set .@current_page, 1;
+
+	menu "Page " + .@current_page + "/" + .@total_pages,L_SHOW_LIBRARY,"Au revoir",L_END;
+
+	L_SHOW_LIBRARY:
+		.@page, .@page_size, .@start_index, .@end_index; // Déclaration des variables locales
+		set .@page, $@arg[0];
+		set .@page_size, $@arg[1];
+		set .@start_index, (.@page - 1) * .@page_size + 1;
+		set .@end_index, .@start_index + .@page_size - 1;
+
+		mes "--- Librairie Globale (Page " + .@page + ") ---";
+		set .@i, .@start_index;
+		while (.@i <= .@end_index && .@library_items$[.@i] != 0) {
+			mes .@i + ". " + getitemname(.@library_items$[.@i]);
+			set .@i, .@i + 1;
+		}
+		mes "----------------------------------------";
+
+		set .@choice, -1;
+
+		if(.@total_pages > 1){
+			setarray .@menu_options$[0], "Page suivante", "Page précédente";
+			set .@i, 0;
+			while(.@i < 2){
+				if(.@current_page == .@total_pages && .@i == 0){
+					set .@menu_options$[.@i], " "; // Si dernière page, désactiver "Page suivante"
+				}else if(.@current_page == 1 && .@i == 1){
+					set .@menu_options$[.@i], " "; // Si première page, désactiver "Page précédente"
+				}
+				set .@i, .@i + 1;
+			}
+ 
+			set .@choice, select( .@menu_options$[0],":".@menu_options$[1],":Retour");
+ 
+			switch(.@choice){
+				case 1:
+					set .@current_page, .@current_page + 1;
+					break;
+				case 2:
+					set .@current_page, .@current_page - 1;
+				break;
+			}
+		}
+
+		if(.@choice != -1){
+			mes " ";
+			menu "Page " + .@current_page + "/" + .@total_pages,L_SHOW_LIBRARY,"Au revoir",L_END;
+		}
+
+		close;
+
+	L_END:
+		close;
+}

@@ -1,0 +1,5 @@
+// Test de chargement minimal
+prontera,150,150,5	script	TestChargement	111,{
+	mes "Le fichier technology_system.txt est bien chargé !";
+	close;
+}
