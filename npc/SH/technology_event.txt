@@ -1,0 +1,23 @@
+// Script Name: Technology_Events.txt
+// Description: Événements du système de découverte de technologies.
+// Version: 2.0
+// Author: Cydon
+
+// Déclaration des variables globales
+.@item_id, .@char_name$;
+
+OnItemGet:
+    set .@item_id, $@arg[0]; // ID de l'objet acquis
+    set .@char_name$, strcharinfo(0); // Nom du personnage
+
+    switch (.@item_id) {
+        case 512: // ID du Livre des Potions Rouges
+            if (!.@discovered_technologies$["red_potion_crafting"]) {
+                mesall strcharinfo(0) + " a découvert la recette des Potions Rouges !",2;
+                mesall "Les herboristes peuvent maintenant fabriquer des Potions Rouges !",2;
+                set .@discovered_technologies$["red_potion_crafting"], 1; // Débloquer la technologie
+            }
+            break;
+        // Ajoutez d'autres cas pour d'autres objets de découverte.
+    }
+    end;

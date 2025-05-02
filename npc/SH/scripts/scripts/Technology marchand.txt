@@ -1,0 +1,33 @@
+// Script Name: Technology_Merchant.txt
+// Description: Marchand qui vend uniquement les objets découverts.
+// Version: 1.0
+// Author: TonNom
+
+prontera,190,180,4	script	Marchand de Technologies	869,{
+    mes "Bonjour !";
+    mes "Je vends des objets spéciaux, mais je ne propose que ceux dont les recettes ont été découvertes par les aventuriers.";
+
+    // Construire dynamiquement la liste des objets à vendre.
+    set .@shop_items$, "";
+
+    // Ajouter les objets en fonction des technologies découvertes.
+    if (.@discovered_technologies$["red_potion_crafting"]) {
+        set .@shop_items$, .@shop_items$ + "501,100:"; // Potion Rouge (ID 501, prix 100)
+    }
+    if (.@discovered_technologies$["another_technology"]) {
+        set .@shop_items$, .@shop_items$ + "502,200:"; // Autre objet (ID 502, prix 200)
+    }
+    // Ajoutez d'autres objets en fonction des technologies découvertes.
+
+    // Vérifier si des objets sont disponibles.
+    if (.@shop_items$ == "") {
+        mes "Malheureusement, aucune technologie n'a encore été découverte.";
+        mes "Revenez me voir plus tard !";
+        close;
+    }
+
+    // Ouvrir l'échoppe avec la liste dynamique d'objets.
+    next;
+    shop, .@shop_items$;
+    close;
+}

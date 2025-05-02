@@ -1,0 +1,44 @@
+2. Idées supplémentaires pour rendre le système de technologie plus attractif :
+
+Quêtes de découverte : Au lieu de simplement trouver des objets, les joueurs pourraient devoir accomplir des quêtes complexes pour débloquer de nouvelles technologies. Cela ajoute un élément de défi et d'aventure.
+Technologies cachées : Certaines technologies pourraient être cachées derrière des conditions spéciales (par exemple, un certain niveau, une certaine compétence, etc.).
+Technologies exclusives : Certaines technologies pourraient être exclusives à certaines classes ou à certains groupes de joueurs.
+Arbre de technologies : Créez un arbre de technologies complexe, où chaque technologie débloque de nouvelles possibilités et de nouveaux chemins de progression.
+Compétition entre les joueurs : Organisez des événements ou des concours pour récompenser les joueurs qui découvrent de nouvelles technologies.
+Interface utilisateur améliorée : Créez une interface utilisateur dédiée pour consulter la librairie des technologies découvertes et suivre les progrès de la recherche.
+Indices et rumeurs : Disséminez des indices et des rumeurs dans le monde du jeu pour aider les joueurs à trouver les objets de découverte.
+Intégration avec l'histoire du jeu : Intégrez les technologies découvertes dans l'histoire du jeu, en leur donnant un sens et une importance particulière.
+Exemple de Quête de Découverte :
+
+Un PNJ donne une quête demandant aux joueurs de trouver des indices sur une ancienne recette de potion.
+Les joueurs doivent explorer différentes cartes, interagir avec d'autres PNJ, et résoudre des énigmes pour trouver les indices.
+Une fois tous les indices réunis, les joueurs peuvent combiner les informations pour trouver l'objet de découverte (le Livre des Potions Rouges).
+Exemple de Technologie Exclusive :
+
+Seuls les Alchimistes peuvent utiliser le Livre des Potions Avancées pour créer des potions plus puissantes.
+
+
+Journal du Voyageur :
+
+Ajoutez un "Journal du Voyageur" que les joueurs peuvent acquérir. Ce journal se remplit automatiquement avec des informations sur les lieux qu'ils visitent, les monstres qu'ils combattent, et les PNJs qu'ils rencontrent.
+Script : Un système qui utilise des événements comme OnPCMapChange et OnPCKillEvent pour enregistrer des informations dans des variables de script, puis les affiche dans un menu spécial.
+
+Système de Faim et de Soif :
+
+Introduisez des mécanismes de faim et de soif. Les joueurs doivent régulièrement manger et boire pour maintenir leurs statistiques de base. Différents aliments et boissons pourraient avoir des effets variés (bonus temporaires, etc.).
+Script : Utilisez des timers pour réduire les niveaux de faim et de soif, et des menus pour permettre aux joueurs de consommer des aliments et des boissons.
+Effets des Blessures Persistent :
+
+Les blessures subies au combat pourraient avoir des effets persistants (réduction de la vitesse de déplacement, malus à l'attaque, etc.) qui nécessitent des soins spécifiques (bandages, potions de guérison avancées).
+Script : Utilisez des événements de combat (OnPCAttackedEvent, OnPCKilledEvent) pour appliquer des malus temporaires basés sur le type de blessure.
+
+Cycle Jour/Nuit avec Influence sur les Monstres :
+
+Implémentez un cycle jour/nuit où certains monstres deviennent plus forts, apparaissent en plus grand nombre ou changent de comportement durant la nuit. Par exemple, les zombies pourraient devenir plus rapides et les chauves-souris plus nombreuses.
+Script : Utilisez des timers pour suivre le cycle jour/nuit et modifiez les statistiques ou les apparitions de monstres en conséquence.
+
+Système de rumeurs :
+
+Concept : Les PNJs partagent des rumeurs sur des événements récents, des zones dangereuses, ou des trésors cachés. Ces rumeurs pourraient être vraies ou fausses.
+Comment c'est réalisable : Utilisez des tableaux de chaînes (.@rumors$[1], etc.) pour stocker les rumeurs, et choisissez aléatoirement une rumeur à afficher à chaque interaction.
+Impact : Encourage l'exploration et l'interaction avec les PNJs pour obtenir des informations.

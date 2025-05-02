@@ -1,0 +1,6 @@
+CREATE TABLE `reputation` (
+  `char_id` int(11) NOT NULL,
+  `reputation_level` int(11) NOT NULL DEFAULT '0',
+  `reputation_points` int(11) NOT NULL DEFAULT '0',
+  PRIMARY KEY (`char_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;

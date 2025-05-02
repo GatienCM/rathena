@@ -1,0 +1,59 @@
+// Script Name: Technology_System.txt
+// Description: Système de découverte progressive de technologies.
+// Version: 1.0
+// Author: TonNom
+
+// Variables globales :
+// .@discovered_technologies$[<nom_de_la_technologie>] = 1 si la technologie a été découverte, 0 sinon.
+// .@library_items$[<slot>] = itemID des items découverts stockés.
+
+// Événement lorsqu'un objet est acquis par un joueur.
+OnItemGet:
+    set .@item_id, $@arg[0];
+    set .@char_name$, strcharinfo(0);
+
+    switch (.@item_id) {
+        case 40001: // ID du Livre des Potions Rouges
+            if (!.@discovered_technologies$["red_potion_crafting"]) {
+                set .@discovered_technologies$["red_potion_crafting"], 1;
+                set .@item_name$, getitemname(.@item_id);
+                mesall .@char_name$ + " a découvert la recette des Potions Rouges !",2;
+                mesall "Les herboristes peuvent maintenant fabriquer des Potions Rouges !",2;
+                
+                // Ajouter le livre à la librairie globale
+                callfunc "addToLibrary", .@item_id;
+            }
+            break;
+        // Ajoutez d'autres cas pour d'autres objets de découverte.
+    }
+    end;
+
+//Fonction pour ajouter un item à la librairie
+function addToLibrary{
+    set .@item_id, $@arg[0];
+    set .@slot, 1;
+
+    while(.@library_items$[.@slot] != 0){
+        set .@slot, .@slot + 1;
+        if(.@slot > 100){
+            mes "La librairie est pleine.";
+            return;
+        }
+    }
+
+    set .@library_items$[.@slot], .@item_id;
+
+    return;
+}
+
+//Fonction pour afficher la librairie
+function showLibrary{
+    set .@slot, 1;
+    mes "--- Librairie Globale ---";
+    while(.@library_items$[.@slot] != 0){
+        mes .@slot + ". " + getitemname(.@library_items$[.@slot]);
+        set .@slot, .@slot + 1;
+    }
+    mes "-----------------------";
+    return;
+}

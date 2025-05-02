@@ -1,0 +1,59 @@
+// Script Name: Poring_Hunter.txt
+// Description: PNJ qui demande au joueur de tuer 50 Porings pour gagner de la réputation et sauvegarde la réputation en base de données.
+// Version: 1.1
+// Author: TonNom
+
+Poring_Hunter,npc/custom/poring_hunter,100,100,0 script Chasseur de Porings 864,{
+    mes "Salutations, aventurier !";
+    mes "Je suis le Chasseur de Porings, et j'ai besoin de votre aide.";
+    mes "Les Porings sont devenus trop nombreux dans les environs, et il faut en réduire le nombre.";
+
+    menu "Accepter la mission (50 Porings)",L_ACCEPT_QUEST,"Décliner",L_DECLINE_QUEST;
+
+    L_ACCEPT_QUEST:
+        // Vérifier si le joueur a déjà la quête en cours.
+        if (.@poring_quest_active) {
+            mes "Vous êtes déjà en train de chasser les Porings !";
+            mes "Revenez me voir quand vous aurez terminé.";
+            close;
+        }
+
+        mes "Excellent ! Votre mission est d'éliminer 50 Porings.";
+        mes "Revenez me voir quand vous aurez terminé.";
+
+        // Initialiser la quête.
+        set .@poring_quest_active, 1;
+        set .@poring_kills_needed, 50;
+        set .@map$, "prontera"; // Map ou la quete est faisable
+        set .@mob_id, 1002; // id du monstre poring
+
+        //sauvegarde la map de départ du joueur pour éviter la triche
+        set .@start_map$, strcharinfo(3); 
+
+        // Commencer à surveiller les kills de Porings.
+        OnPCLKillEvent:
+        if (.@poring_quest_active == 1 && killedrid == .@mob_id && strcharinfo(0) == .@map$ && strcharinfo(3) == .@start_map$) {
+            set .@poring_kills_current, .@poring_kills_current + 1;
+
+            mes "Vous avez tué " + .@poring_kills_current + " Porings.";
+
+            if (.@poring_kills_current >= .@poring_kills_needed) {
+                mes "Félicitations ! Vous avez éliminé les 50 Porings demandés.";
+                mes "Je vous suis très reconnaissant pour votre aide.";
+
+                // Donner la récompense de réputation.
+                callfunc "addReputation", getcharid(0), 50;
+
+                // Réinitialiser la quête.
+                set .@poring_quest_active, 0;
+                set .@poring_kills_needed, 0;
+                set .@poring_kills_current, 0;
+                close;
+            }
+        }
+        close;
+
+    L_DECLINE_QUEST:
+        mes "Très bien, peut-être une autre fois.";
+        close;
+}

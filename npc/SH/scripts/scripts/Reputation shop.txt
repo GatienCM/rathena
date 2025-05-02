@@ -1,0 +1,99 @@
+// Script Name: Reputation_Merchant.txt
+// Description: Marchand avec limitation d'achat (variables de compte) + achat unique du ruban.
+// Version: 2.7
+// Author: TonNom
+
+prontera,160,180,4	script	Marchand de Réputation	866,{
+    mes "Bienvenue dans ma boutique !";
+    mes "Je vends des objets rares, mais seuls les clients les plus fidèles peuvent y accéder.";
+
+    // Récupérer le niveau de réputation du joueur.
+    set .@reputation_level, callfunc("getReputationLevel", getcharid(0));
+
+    // Structure de contrôle basée sur le niveau de réputation.
+    switch (.@reputation_level) {
+        case REP_LEVEL_NEUTRAL:
+            mes "Votre réputation est encore trop basse pour accéder à mes meilleurs articles.";
+            mes "Revenez me voir lorsque vous aurez gagné la confiance de notre faction.";
+            close;
+
+        case REP_LEVEL_APPRENTICE:
+            mes "Ah, un apprenti ! Bienvenue.";
+            mes "Voici les articles que je peux vous proposer pour l'instant :";
+            next;
+
+            shop,ITEM_SHOP_APPRENTICE; // Ouvrir l'échoppe pour les apprentis
+            close;
+
+        case REP_LEVEL_ADEPT:
+            mes "Salutations, Adepte !";
+            mes "Votre loyauté est appréciée. J'ai quelques articles supplémentaires pour vous :";
+            next;
+
+            shop,ITEM_SHOP_ADEPT; // Ouvrir l'échoppe pour les adeptes
+            close;
+
+        case REP_LEVEL_EXPERT:
+            mes "Bienvenue, Expert !";
+            mes "Vos compétences sont reconnues. Voici une sélection d'articles de qualité supérieure :";
+            next;
+
+            shop,ITEM_SHOP_EXPERT; // Ouvrir l'échoppe pour les experts
+            close;
+
+        case REP_LEVEL_MASTER:
+            mes "Maître, votre réputation est sans égale !";
+            mes "En signe de gratitude, je vous offre un accès exclusif à mes articles les plus précieux :";
+            
+            // Vérification si le joueur a déjà acheté le Ruban de l'aventure.
+            getaccountvar(.@has_ribbon,"has_adventure_ribbon");
+
+            if (.@has_ribbon) {
+                mes "Vous avez déjà acheté un Ruban de l'aventure et ne pouvez pas en acheter un autre.";
+                close;
+            }
+
+            menu "Ouvrir la boutique",L_OPEN_SHOP,"Acheter le Ruban de l'aventure (5000 Zeny)",L_BUY_RIBBON,"Au revoir",L_END;
+
+            L_OPEN_SHOP:
+                next;
+                shop, ITEM_SHOP_MASTER;
+                close;
+                
+            L_BUY_RIBBON:
+                if (Zeny < 5000) {
+                    mes "Vous n'avez pas assez de Zeny.";
+                    close;
+                }
+                
+                set Zeny, Zeny - 5000;
+                getitem 23001, 1;
+                setaccountvar "has_adventure_ribbon", 1;
+                mes "Merci pour votre achat !";
+                close;
+                
+            L_END:
+                close;
+    }
+}
+
+// Définir les échoppes (en dehors du script du NPC).
+// Vous pouvez les définir ici, ou dans un autre fichier .txt inclus via scripts_custom.conf.
+
+ITEM_SHOP_APPRENTICE,shop
+501,100:  // Potion de soin, 100 zeny
+
+ITEM_SHOP_ADEPT,shop
+501,100:  // Potion de soin, 100 zeny
+504,500:  // Aile de papillon, 500 zeny
+
+ITEM_SHOP_EXPERT,shop
+501,100:  // Potion de soin, 100 zeny
+504,500:  // Aile de papillon, 500 zeny
+512,1000: // Gemme bleue, 1000 zeny
+
+ITEM_SHOP_MASTER,shop
+501,100:  // Potion de soin, 100 zeny
+504,500:  // Aile de papillon, 500 zeny
+512,1000: // Gemme bleue, 1000 zeny
+//23001,5000: // Ruban de l'aventure, 5000 zeny (supprimé de l'échoppe)

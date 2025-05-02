@@ -1,0 +1,146 @@
+//===== Script de Système de Réputation par Monstre =====
+//===== Auteur: Ton Assistant IA (pour Game Master) =====
+//===== Version: 1.1 =====
+//===== Émulateur: rAthena =====
+
+// ----- PNJ Marchand de Réputation -----
+prontera,155,185,4	script	Marchand de Réputation	888,{
+
+	mes "[Marchand de Réputation]";
+	mes "Bonjour, " + strcharinfo(0) + ".";
+
+	// Récupère les points actuels du joueur.
+	.@current_rep = getplayervar(getcharid(3),.@ReputationVariable$);
+	if ( .@current_rep == 0 )
+		.@current_rep = 0; // Initialise à 0 si non défini
+
+	mes "Votre dévouement envers notre cause est apprécié.";
+	mes "Vous avez actuellement ^0000FF" + .@current_rep + "^000000 point(s) de réputation.";
+	mes "Souhaitez-vous échanger vos points contre des récompenses ?";
+	next;
+
+	menu "Voir les récompenses",L_Shop,"En savoir plus",L_Info,"Partir",L_Close;
+
+L_Shop:
+	mes "[Marchand de Réputation]";
+	mes "Voici ce que je peux vous offrir en échange de votre loyauté :";
+	mes "Vous avez ^0000FF" + .@current_rep + "^000000 point(s).";
+
+	.@menu$ = "";
+	.@item_count = getarraysize(.@ShopItems);
+	for ( .@i = 0; .@i < .@item_count; .@i = .@i + 3 ) {
+		.@menu$ = .@menu$ + .@ShopItems[.@i+2] + " (" + .@ShopItems[.@i+1] + " pts):";
+	}
+	.@menu$ = .@menu$ + "Annuler";
+
+	menu .@menu$,L_Select;
+	stop;
+
+L_Select:
+	if ( $@menu == (.@item_count / 3) + 1 ) { // Option "Annuler"
+		goto L_Close;
+	}
+
+	.@choice_index = ($@menu - 1) * 3;
+	.@item_id = .@ShopItems[.@choice_index];
+	.@item_cost = .@ShopItems[.@choice_index+1];
+	.@item_name$ = .@ShopItems[.@choice_index+2];
+
+	mes "[Marchand de Réputation]";
+	if ( .@current_rep < .@item_cost ) {
+		mes "Désolé, vous n'avez pas assez de points pour obtenir '" + .@item_name$ + "'.";
+		mes "Il vous manque ^FF0000" + (.@item_cost - .@current_rep) + "^000000 point(s).";
+		next;
+		goto L_Shop; // Retourne à la boutique
+	}
+
+	// Vérification de poids/place (optionnel mais recommandé)
+	// getiteminfo(item_id, 2) -> poids de l'item
+	// if( Weight + getiteminfo(.@item_id, 2) > MaxWeight ) { ... }
+
+	mes "Voulez-vous vraiment échanger ^0000FF" + .@item_cost + "^000000 points contre '" + .@item_name$ + "' ?";
+	next;
+	menu "Oui", L_ConfirmPurchase, "Non", L_Shop;
+
+L_ConfirmPurchase:
+	// Déduire les points
+	.@new_rep = .@current_rep - .@item_cost;
+	setplayervar getcharid(3),.@ReputationVariable$,.@new_rep;
+
+	// Donner l'objet
+	getitem .@item_id, 1;
+
+	mes "[Marchand de Réputation]";
+	mes "Merci pour votre contribution ! Voici votre récompense.";
+	mes "Il vous reste ^0000FF" + .@new_rep + "^000000 point(s).";
+	next;
+	goto L_Shop; // Retourne à la boutique pour d'autres achats
+
+L_Info:
+	mes "[Marchand de Réputation]";
+	mes "Gagnez des points de réputation en éliminant certaines créatures qui menacent notre région.";
+	mes "Plus la créature est dangereuse ou rare, plus la récompense en points sera élevée.";
+	mes "Revenez me voir quand vous voudrez !";
+	close;
+
+L_Close:
+	mes "[Marchand de Réputation]";
+	mes "Revenez quand vous voudrez ! Votre aide est précieuse.";
+	close;
+
+OnInit:
+	end;
+}
+// ----- Configuration -----
+// Variable joueur pour stocker les points de réputation (sans le @)
+set	.@ReputationVariable$,	"reputation_points";
+
+// Liste des monstres donnant de la réputation et les points associés
+// Format: MonsterID, Points; MonsterID, Points; ...
+	setarray .@MonsterRepList,1002,1,1037,2,1115,5,1018,1; // Poring:1pt, Rocker:2pts, Poporing:5pts, Marin:1pt (Exemples)
+
+// Liste des objets vendus par le marchand de réputation
+// Format: ItemID, CoutReputation, NomAffiché; ItemID, CoutReputation, NomAffiché; ...
+	setarray .@ShopItems,501,10,"Pomme",1201,50,"Aile de Mouche",607,250,"Potion Blanche"; // Exemples
+
+// --- Fin de la Configuration ---
+
+// ----- Événement de Mort de Monstre -----
+-	script	ReputationKillEvent	-1,{
+OnPCKillEvent:
+	.@killed_mob_id = killed_rid; // Récupère l'ID du monstre tué
+	.@ReputationVariable$ = getconstant("ReputationVariable$");
+
+	// Parcourt la liste des monstres configurés
+	.@mob_list_size = getarraysize(ReputationKillEvent::@MonsterRepList);
+	for ( .@i = 0; .@i < .@mob_list_size; .@i = .@i + 2 ) {
+		if ( ReputationKillEvent::@MonsterRepList[.@i] == .@killed_mob_id ) {
+			.@points_to_add = ReputationKillEvent::@MonsterRepList[.@i+1];
+
+			// Récupère les points actuels du joueur
+			.@current_rep = getplayervar(getcharid(3),.@ReputationVariable$);
+			if ( .@current_rep == 0 )
+				.@current_rep = 0;
+
+			 // Ajoute les nouveaux points
+			 .@new_rep = .@current_rep + .@points_to_add;
+
+			 // Met à jour la variable du joueur
+			 setplayervar getcharid(3),.@ReputationVariable$,.@new_rep;
+
+			// Informe le joueur (message discret en bas de l'écran)
+			dispbottom "Vous avez gagné " + .@points_to_add + " point(s) de réputation ! Total : " + .@new_rep;
+
+			end; // Sort de l'événement une fois le monstre trouvé et les points attribués
+		}
+	}
+	end; // Fin de l'événement si le monstre tué n'est pas dans la liste
+
+OnInit:
+	// Initialise les variables globales une seule fois au démarrage
+	if (getconstant("ReputationVariable$") == "") {
+	   set ReputationKillEvent::@ReputationVariable$, "reputation_points";
+	   setarray ReputationKillEvent::@MonsterRepList,1002,1,1037,2,1115,5,1018,1;
+	}
+	end;
+}

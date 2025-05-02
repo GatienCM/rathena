@@ -199,8 +199,6 @@ Body:
     Weight: 20
     Flags:
       BuyingStore: true
-    Script: |
-      itemheal rand(16,22),0;
   - Id: 513
     AegisName: Banana
     Name: Banana

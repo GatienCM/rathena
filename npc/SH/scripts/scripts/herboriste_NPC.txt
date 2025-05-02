@@ -1,0 +1,35 @@
+// Script Name: Herbalist_NPC.txt
+// Description: PNJ herboriste qui peut fabriquer des potions rouges si la recette est connue.
+// Version: 1.0
+// Author: TonNom
+
+prontera,180,180,4	script	Herboriste	868,{
+    mes "Salutations !";
+    mes "Je suis un herboriste, et je peux fabriquer des potions si j'en connais la recette.";
+
+    // Vérifier si la recette des potions rouges a été découverte.
+    if (.@discovered_technologies$["red_potion_crafting"]) {
+        menu "Fabriquer une Potion Rouge (10 Zeny + 1 Herbe Rouge)",L_CRAFT_RED_POTION,"Au revoir",L_END;
+
+        L_CRAFT_RED_POTION:
+            // Vérifier si le joueur a assez de Zeny et d'Herbes Rouges.
+            if (Zeny < 10 || countitem(509) < 1) { // 509 = ID de l'Herbe Rouge
+                mes "Vous n'avez pas assez de Zeny ou d'Herbes Rouges.";
+                close;
+            }
+
+            // Retirer le Zeny et l'Herbe Rouge, et donner la Potion Rouge.
+            set Zeny, Zeny - 10;
+            delitem 509, 1;
+            getitem 501, 1; // 501 = ID de la Potion Rouge
+            mes "Voici votre Potion Rouge !";
+            close;
+    } else {
+        mes "Je ne connais pas encore la recette des Potions Rouges.";
+        mes "Peut-être qu'un aventurier la découvrira un jour...";
+        close;
+    }
+
+    L_END:
+        close;
+}
