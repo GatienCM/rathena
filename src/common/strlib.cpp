@@ -9,6 +9,8 @@
 #include "cbasetypes.hpp"
 #include "malloc.hpp"
 #include "showmsg.hpp"
+#include <stddef.h>
+
 
 // Function to suppress control characters in a string.
 int32 remove_control_chars(char* str)

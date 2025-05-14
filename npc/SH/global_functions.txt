@@ -1,0 +1,423 @@
+// Fonction pour ajouter une nouvelle technologie à la librairie
+function	script	AddTechnology	{
+    .@tech_name$ = getarg(0); // Récupère le nom de la technologie en paramètre
+
+    // Vérifie si la technologie existe déjà
+    if (getarraysize($unlocked_technologies) > 0) {
+        for (.@i = 0; .@i < getarraysize($unlocked_technologies); .@i++) {
+            if ($unlocked_technologies[.@i] == .@tech_name$) {
+                return; // Technologie déjà ajoutée
+            }
+        }
+    }
+
+    // Ajouter la nouvelle technologie au tableau global
+    setarray $unlocked_technologies[getarraysize($unlocked_technologies)], .@tech_name$;
+
+    // Annonce facultative pour indiquer que la technologie a été ajoutée (si besoin)
+    announce "Nouvelle technologie ajoutée à la librairie : " + .@tech_name$, bc_all;
+    return;
+}
+/////////////////////////////////////////////////////////////////////
+// Script pour gérer la collecte de l'objet
+-	script	DiscoverySystem	-1,{
+    OnInit:
+        // Liste des technologies disponibles
+        // Format : ID Monstre, ID Objet, Nom de la Technologie, Taux de Découverte (en pourcentage)
+        setarray .technologies[0],
+            1002, 512, "Technologie des Porings", 50,  // Poring : 50% de chance
+            1726, 513, "Technologie des Lunatics", 30, // Lunatic : 30% de chance
+            1229, 514, "Technologie des Fabres", 70;   // Fabre : 70% de chance
+        end;
+
+    OnNPCKillEvent:
+        // Parcourir toutes les technologies pour vérifier si une condition est remplie
+        for (.@i = 0; .@i < getarraysize(.technologies); .@i += 4) {
+            .@mob_id = .technologies[.@i];
+            .@item_id = .technologies[.@i + 1];
+            .@tech_name$ = .technologies[.@i + 2];
+            .@rate = .technologies[.@i + 3];
+            
+            // Vérification si le monstre tué correspond à une technologie
+            if (killedrid == .@mob_id && !getd(".tech_unlocked_" + .@tech_name$)) {
+                // Appliquer le taux de découverte
+                if (rand(100) < .@rate) {
+                    // Débloquer la technologie
+                    setd ".tech_unlocked_" + .@tech_name$, 1;
+
+                    // Donner l'objet au joueur
+                    getitem .@item_id, 1;
+
+                    // Ajouter la technologie à la librairie
+                    callfunc "AddTechnology", .@tech_name$;
+
+                    // Annonce globale
+                    announce strcharinfo(0) + " a découvert une nouvelle technologie : " + .@tech_name$ + " !", bc_all;
+                    announce "De nouvelles quêtes et objets sont maintenant disponibles !", bc_all;
+                }
+            }
+        }
+        end;
+}
+
+// NPC Bibliothécaire pour consulter les technologies débloquées
+sh_fild01,198,162,3	script	LibraryNPC	5,{
+    mes "[Bibliothécaire]";
+    mes "Bienvenue à la Bibliothèque des Technologies Débloquées.";
+    mes "Je peux vous montrer toutes les technologies que le monde a découvert.";
+    next;
+
+    // Vérifie si des technologies ont été débloquées
+    if (getarraysize($unlocked_technologies) == 0) {
+        mes "Malheureusement, aucune technologie n'a encore été découverte.";
+        close;
+    }
+
+    // Affiche la liste des technologies débloquées
+    mes "Voici les technologies découvertes jusqu'à présent :";
+    for (.@i = 0; .@i < getarraysize($unlocked_technologies); .@i++) {
+        mes "- " + $unlocked_technologies[.@i];
+    }
+    next;
+    mes "Continuez à explorer et découvrir de nouvelles technologies !";
+    close;
+}
+
+// Fonction pour ajouter une nouvelle technologie à la librairie
+function	script	AddTechnology	{
+    .@tech_name$ = getarg(0); // Récupère le nom de la technologie en paramètre
+
+    // Vérifie si la technologie existe déjà
+    if (getarraysize($unlocked_technologies) > 0) {
+        for (.@i = 0; .@i < getarraysize($unlocked_technologies); .@i++) {
+            if ($unlocked_technologies[.@i] == .@tech_name$) {
+                return; // Technologie déjà ajoutée
+            }
+        }
+    }
+
+    // Ajouter la nouvelle technologie au tableau global
+    setarray $unlocked_technologies[getarraysize($unlocked_technologies)], .@tech_name$;
+
+    // Synchronisation avec les variables dynamiques
+    setd(".tech_unlocked_" + .@tech_name$, 1);
+
+    // Annonce facultative pour indiquer que la technologie a été ajoutée (si besoin)
+    announce "Nouvelle technologie ajoutée à la librairie : " + .@tech_name$, bc_all;
+    return;
+}
+//NPC BIBLIO GOOD
+sh_fild01,198,162,3	script	LibraryNPCSQL	5,{
+    mes "[Bibliothécaire]";
+    mes "Bienvenue à la Bibliothèque des Technologies Débloquées (mode global).";
+    mes "Je peux vous montrer toutes les technologies que le monde a découvert.";
+    next;
+
+    menu "Voir les technologies débloquées.",show_technologies,"Réinitialiser toutes les découvertes.",reset_technologies;
+
+    show_technologies:
+        // Récupérer les technologies débloquées depuis la base SQL
+        query_sql("SELECT technology_name FROM unlocked_technologies", .@tech_names$);
+
+        // Vérifie si des technologies ont été débloquées
+        if (getarraysize(.@tech_names$) == 0) {
+            mes "Malheureusement, aucune technologie n'a encore été découverte globalement.";
+            close;
+        }
+
+        // Affiche la liste des technologies débloquées
+        mes "Voici les technologies découvertes jusqu'à présent :";
+        for (.@i = 0; .@i < getarraysize(.@tech_names$); .@i++) {
+            mes "- " + .@tech_names$[.@i];
+            debugmes "DEBUG | Technologie affichée : " + .@tech_names$[.@i];
+        }
+        next;
+        mes "Continuez à explorer et découvrir de nouvelles technologies pour tout le monde !";
+        close;
+
+    reset_technologies:
+        mes "[Bibliothécaire]";
+        mes "Êtes-vous sûr de vouloir réinitialiser toutes les découvertes globales ?";
+        next;
+        menu "Oui, tout réinitialiser.",confirm_reset,"Non, annuler.",cancel_reset;
+
+        confirm_reset:
+            // Supprimer toutes les technologies débloquées dans la base SQL (globalement)
+            query_sql("DELETE FROM unlocked_technologies");
+            debugmes "DEBUG | Toutes les technologies ont été réinitialisées globalement.";
+
+            mes "[Bibliothécaire]";
+            mes "Toutes les découvertes ont été réinitialisées globalement.";
+            close;
+
+        cancel_reset:
+            mes "[Bibliothécaire]";
+            mes "Très bien, les découvertes globales restent inchangées.";
+            close;
+}
+
+
+//Script complet a peu pres fonctionnel
+// Script pour gérer la collecte des objets avec technologies globales
+-	script	DiscoverySystemSQL	-1,{
+    OnInit:
+        // Tableaux distincts pour chaque catégorie
+        setarray .mob_ids[0], 1002, 1726, 1229; // IDs des monstres
+        setarray .item_ids[0], 512, 513, 514;  // IDs des objets
+        setarray .tech_names$[0], "Technologie des Porings", "Technologie des Lunatics", "Technologie des Fabres"; // Noms des technologies
+        setarray .rates[0], 50, 30, 70;        // Taux de découverte (en pourcentage)
+
+        // DEBUG : Vérifiez les données après initialisation
+        for (.@i = 0; .@i < getarraysize(.mob_ids); .@i++) {
+            debugmes "DEBUG | Monstre ID : " + .mob_ids[.@i];
+            debugmes "DEBUG | Objet ID : " + .item_ids[.@i];
+            debugmes "DEBUG | Technologie Nom : " + .tech_names$[.@i];
+            debugmes "DEBUG | Taux : " + .rates[.@i];
+        }
+
+        // Création de la table SQL si elle n'existe pas
+        query_sql("CREATE TABLE IF NOT EXISTS unlocked_technologies (" +
+            "id INT AUTO_INCREMENT PRIMARY KEY, " +
+            "technology_name VARCHAR(255) NOT NULL UNIQUE, " +
+            "discovered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
+
+        // Message pour confirmer l'initialisation
+        announce "Le système de découverte des technologies est initialisé avec SQL (mode global).", bc_all;
+        end;
+
+    OnNPCKillEvent:
+        // Parcourir toutes les technologies pour vérifier si une condition est remplie
+        for (.@i = 0; .@i < getarraysize(.mob_ids); .@i++) {
+            .@mob_id = .mob_ids[.@i];
+            .@item_id = .item_ids[.@i];
+            .@tech_name$ = .tech_names$[.@i];
+            .@rate = .rates[.@i];
+
+            // DEBUG : Vérifiez les informations extraites
+            debugmes "DEBUG | Monstre ID : " + .@mob_id;
+            debugmes "DEBUG | Objet ID : " + .@item_id;
+            debugmes "DEBUG | Technologie Nom : " + .@tech_name$;
+            debugmes "DEBUG | Taux : " + .@rate;
+
+            // Vérification si le monstre tué correspond à une technologie
+            if (killedrid == .@mob_id) {
+                // Vérification si la technologie a déjà été débloquée dans la base SQL (globalement)
+                query_sql("SELECT COUNT(*) FROM unlocked_technologies WHERE technology_name = '" + escape_sql(.@tech_name$) + "'", .@count);
+
+                if (.@count > 0) {
+                    announce "Technologie déjà débloquée globalement : " + .@tech_name$, bc_self;
+                    continue;
+                }
+
+                // Appliquer le taux de découverte
+                if (rand(100) < .@rate) {
+                    // Ajouter la technologie débloquée dans la base SQL (globalement)
+                    query_sql("INSERT INTO unlocked_technologies (technology_name) VALUES ('" + escape_sql(.@tech_name$) + "')");
+
+                    // DEBUG : Vérifiez l'insertion dans SQL
+                    debugmes "DEBUG | Technologie insérée dans SQL : " + .@tech_name$;
+
+                    // Donner l'objet au joueur
+                    getitem .@item_id, 1;
+
+                    // Annonce globale
+                    announce strcharinfo(0) + " a découvert une nouvelle technologie : " + .@tech_name$ + " !", bc_all;
+                    announce "De nouvelles quêtes et objets sont maintenant disponibles pour tout le monde !", bc_all;
+                } else {
+                    announce "Vous n'avez pas réussi à découvrir la technologie : " + .@tech_name$, bc_self;
+                }
+            }
+        }
+        end;
+}
+
+// NPC Bibliothécaire pour consulter ou réinitialiser les technologies débloquées
+sh_fild01,198,162,3	script	LibraryNPCSQL	5,{
+
+    mes "[Bibliothécaire]";
+    mes "Bienvenue à la Bibliothèque des Technologies Débloquées (mode global).";
+    mes "Je peux vous montrer les technologies découvertes ainsi que les objets associés.";
+    next;
+
+    // Initialisation des données
+    setarray .mob_ids[0], 1002, 1726, 1229; // IDs des monstres
+    setarray .item_ids[0], 512, 513, 514;  // IDs des objets
+    setarray .tech_names$[0], "Technologie des Porings", "Technologie des Lunatics", "Technologie des Fabres"; // Noms des technologies
+
+    // Récupérer les technologies débloquées depuis la base SQL
+    query_sql("SELECT technology_name FROM unlocked_technologies", .@tech_names$);
+
+    // Vérifie si des technologies ont été débloquées
+    if (getarraysize(.@tech_names$) == 0) {
+        mes "Malheureusement, aucune technologie n'a encore été découverte globalement.";
+        close;
+    }
+
+    mes "Voici les technologies découvertes et leurs objets associés :";
+    next;
+
+    // Construire le menu dynamique
+    for (.@i = 0; .@i < getarraysize(.@tech_names$); .@i++) {
+        // Chercher l'index de la technologie débloquée dans les tableaux
+        for (.@j = 0; .@j < getarraysize(.tech_names$); .@j++) {
+            if (.@tech_names$[.@i] == .tech_names$[.@j]) {
+                .@menu$ = .@menu$ + .tech_names$[.@j] + ":";
+                set .@item_map[.@i], .item_ids[.@j]; // Associer l'item à l'index du menu
+                break;
+            }
+        }
+    }
+
+    // Afficher le menu
+    .@choice = select(.@menu$) - 1; // Sélectionner l'index (0-based)
+    if (.@choice >= 0 && .@choice < getarraysize(.@item_map)) {
+        set .@item_id, .@item_map[.@choice];
+        mes "[Bibliothécaire]";
+        mes "Voici un aperçu de l'objet lié à cette technologie :";
+        mes "<ITEM>" + getitemname(.@item_id) + "<INFO>" + .@item_id + "</INFO></ITEM>"; // Lien cliquable pour afficher l'objet
+        close;
+    } else {
+        mes "[Bibliothécaire]";
+        mes "Une erreur s'est produite lors de votre sélection.";
+    }
+
+    close;
+}
+
+
+//////////////////////Script fonctionnel mais heavy
+-	script	DiscoverySystemSQL	-1,{
+    OnInit:
+        // Création des tables SQL si elles n'existent pas encore
+        query_sql("CREATE TABLE IF NOT EXISTS technologies (" +
+            "id INT AUTO_INCREMENT PRIMARY KEY, " +
+            "technology_name VARCHAR(255) NOT NULL UNIQUE, " +
+            "mob_id INT NOT NULL, " +
+            "item_id INT NOT NULL, " +
+            "discovery_rate INT NOT NULL, " +
+            "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
+
+        query_sql("CREATE TABLE IF NOT EXISTS unlocked_technologies (" +
+            "id INT AUTO_INCREMENT PRIMARY KEY, " +
+            "technology_name VARCHAR(255) NOT NULL UNIQUE, " +
+            "discovered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
+
+        query_sql("SELECT COUNT(*) FROM technologies", .@count);
+        if (.@count == 0) {
+            debugmes "DEBUG | Table 'technologies' vide, insertion des valeurs initiales.";
+            query_sql("INSERT INTO technologies (technology_name, mob_id, item_id, discovery_rate) VALUES " +
+                "('Technologie des Porings', 1002, 512, 50), " +
+                "('Technologie des Lunatics', 1726, 513, 30), " +
+                "('Technologie des Fabres', 1229, 514, 70)");
+        }
+
+        query_sql("SELECT id, technology_name, mob_id, item_id, discovery_rate FROM technologies", 
+                  .@tech_ids, .@tech_names$, .@mob_ids, .@item_ids, .@rates);
+
+        debugmes "DEBUG | Nombre de technologies récupérées : " + getarraysize(.@tech_names$);
+
+        if (getarraysize(.@tech_names$) > 0) {
+            debugmes "DEBUG | Technologies disponibles chargées :";
+            for (.@i = 0; .@i < getarraysize(.@tech_names$); .@i++) {
+                debugmes "DEBUG | Technologie : " + .@tech_names$[.@i] + ", Monstre ID : " + .@mob_ids[.@i] + ", Taux : " + .@rates[.@i] + "%";
+            }
+
+            copyarray .tech_ids, .@tech_ids, getarraysize(.@tech_ids);
+            copyarray .tech_names$, .@tech_names$, getarraysize(.@tech_names$);
+            copyarray .mob_ids, .@mob_ids, getarraysize(.@mob_ids);
+            copyarray .item_ids, .@item_ids, getarraysize(.@item_ids);
+            copyarray .rates, .@rates, getarraysize(.@rates);
+        }
+
+        end;
+
+    OnNPCKillEvent:
+        debugmes "DEBUG | OnNPCKillEvent déclenché. Monstre tué : " + killedrid;
+
+        for (.@i = 0; .@i < getarraysize(.mob_ids); .@i++) {
+            debugmes "DEBUG | Vérification : Monstre ID dans la liste : " + .mob_ids[.@i];
+            if (killedrid == .mob_ids[.@i]) {
+                debugmes "DEBUG | Monstre correspondant trouvé : " + killedrid + " pour : " + .tech_names$[.@i];
+
+                query_sql("SELECT COUNT(*) FROM unlocked_technologies WHERE technology_name = '" + escape_sql(.tech_names$[.@i]) + "'", .@exists);
+                if (.@exists > 0) {
+                    debugmes "DEBUG | La technologie existe déjà : " + .tech_names$[.@i];
+                    continue;
+                }
+
+                .@rate = .rates[.@i];
+                debugmes "DEBUG | Taux de découverte pour : " + .tech_names$[.@i] + " est de " + .@rate + "%";
+
+                if (rand(100) < .@rate) {
+                    debugmes "DEBUG | Découverte réussie pour : " + .tech_names$[.@i];
+
+                    query_sql("INSERT INTO unlocked_technologies (technology_name) VALUES ('" + escape_sql(.tech_names$[.@i]) + "')");
+                    if (query_sql("SELECT COUNT(*) FROM unlocked_technologies WHERE technology_name = '" + escape_sql(.tech_names$[.@i]) + "'", .@exists) && .@exists > 0) {
+                        debugmes "DEBUG | Succès : Technologie insérée dans SQL : " + .tech_names$[.@i];
+                        setarray .unlocked_tech_names$, .unlocked_tech_names$, .tech_names$[.@i];
+                        getitem .item_ids[.@i], 1;
+                        announce strcharinfo(0) + " a découvert une nouvelle technologie : " + .tech_names$[.@i] + " !", bc_all;
+                    } else {
+                        debugmes "DEBUG | ERREUR : Échec de l'insertion SQL pour : " + .tech_names$[.@i];
+                    }
+                } else {
+                    debugmes "DEBUG | Échec du taux de découverte pour : " + .tech_names$[.@i];
+                }
+            }
+        }
+
+        debugmes "DEBUG | Aucun monstre correspondant trouvé pour l'ID tué : " + killedrid;
+        end;
+}
+
+//////////////Fonctions test
+function	script	istechnunlocked	{
+	// Vérifie si une technologie est déjà débloquée
+	.@tech_name$ = callfunc("trimString", getarg(0)); // Nettoyer la chaîne recherchée
+	debugmes "DEBUG | Recherche de la technologie nettoyée : '" + .@tech_name$ + "'";
+
+	for (.@i = 0; .@i < getarraysize(.unlocked_tech_names$); .@i++) {
+		.@current_tech_name$ = callfunc("trimString", .unlocked_tech_names$[.@i]); // Nettoyer les chaînes dans le tableau
+		debugmes "DEBUG | Comparaison de '" + .@tech_name$ + "' avec '" + .@current_tech_name$ + "'";
+		if (strcmp(.@current_tech_name$, .@tech_name$) == 0) {
+			debugmes "DEBUG | La technologie '" + .@tech_name$ + "' est déjà débloquée.";
+			return 1; // Technologie déjà débloquée
+		}
+	}
+
+	debugmes "DEBUG | La technologie '" + .@tech_name$ + "' n'est pas débloquée.";
+	return 0; // Technologie non débloquée
+}
+
+function	script	trimString	{
+	.@input$ = getarg(0); // Chaîne à nettoyer
+	.@output$ = "";        // Résultat final
+	.@start = 0;           // Index de début
+	.@end = 0;             // Index de fin
+	.@char = "";           // Caractère courant
+	.@length = my_strlen(.@input$); // Utilisation de my_strlen pour calculer la longueur
+
+	debugmes "DEBUG | Longueur calculée de la chaîne : " + .@length;
+
+	// Trouver la position de début (ignorer les espaces au début)
+	.@start = 0;
+	while (.@start < .@length && substr(.@input$, .@start, 1) == " ") {
+		.@start++;
+	}
+	debugmes "DEBUG | Position de début après nettoyage : " + .@start;
+
+	// Trouver la position de fin (ignorer les espaces à la fin)
+	.@end = .@length - 1;
+	while (.@end >= .@start && substr(.@input$, .@end, 1) == " ") {
+		.@end--;
+	}
+	debugmes "DEBUG | Position de fin après nettoyage : " + .@end;
+
+	// Construire la chaîne nettoyée
+	for (.@i = .@start; .@i <= .@end; .@i++) {
+		.@output$ = .@output$ + substr(.@input$, .@i, 1);
+	}
+	debugmes "DEBUG | Chaîne nettoyée : '" + .@output$ + "'";
+
+	return .@output$;
+}

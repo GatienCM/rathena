@@ -18,6 +18,7 @@
 #include "cbasetypes.hpp"
 #include "malloc.hpp"
 
+
 int32 remove_control_chars(char* str);
 char* trim(char* str);
 char* normalize_name(char* str,const char* delims);

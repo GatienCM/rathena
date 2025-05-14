@@ -1,0 +1,220 @@
+sh_fild01,198,162,3	script	Bibliothécaire	57,{
+    mes "[Bibliothécaire]";
+    mes "Bienvenue à la Bibliothèque d'Arbor Ancresse ! Je suis la personne qui répertorie les technologies découvertes. Vous pouvez consulter leur documentation si vous le souhaitez.";
+    next;
+
+    query_sql("SELECT technology_name, item_id FROM technologies WHERE unlocked = 1", 
+              .@tech_names$, .@item_ids);
+
+    debugmes "DEBUG | Nombre de technologies récupérées : " + getarraysize(.@tech_names$);
+
+    for (.@i = 0; .@i < getarraysize(.@tech_names$); .@i++) {
+        debugmes "DEBUG | Technologie débloquée : " + .@tech_names$[.@i] + ", Item ID : " + .@item_ids[.@i];
+    }
+
+    if (getarraysize(.@tech_names$) == 0) {
+		mes "[Bibliothécaire]";
+        mes "Malheureusement, aucune technologie n'a encore été découverte.";
+        close;
+    }
+	mes "[Bibliothécaire]";
+	mes "Voilà les technologies débloquées. Laquelle vous intéresse ?";
+	
+    .@menu$ = "";
+    for (.@i = 0; .@i < getarraysize(.@tech_names$); .@i++) {
+        .@menu$ = .@menu$ + .@tech_names$[.@i] + ":";
+        set .@item_map[.@i], .@item_ids[.@i];
+    }
+
+    debugmes "DEBUG | Menu construit : " + .@menu$;
+	next;
+    .@choice = select(.@menu$) - 1;
+    if (.@choice >= 0 && .@choice < getarraysize(.@item_map)) {
+        set .@item_id, .@item_map[.@choice];
+        mes "[Bibliothécaire]";
+        mes "Voici le livre demandé, n'oubliez pas de le remettre à sa place.";
+        mes "<ITEM>" + getitemname(.@item_id) + "<INFO>" + .@item_id + "</INFO></ITEM>";
+        close;
+    } else {
+        mes "[Bibliothécaire]";
+        mes "Une erreur s'est produite lors de votre sélection.";
+    }
+
+    close;
+}
+
+sh_fild01,195,162,3	script	PotionResearchNPC	4,{
+
+    mes "[Chercheur de Potions]";
+    mes "Bienvenue ! Voici les recherches disponibles pour débloquer des potions :";
+
+    // Charger les recherches disponibles avec leurs dépendances dynamiquement
+    query_sql("SELECT r.research_name, r.required_item_id, r.required_item_count, r.contributed_item_count, " +
+              "GROUP_CONCAT(t.technology_name) AS dependencies " +
+              "FROM researches r " +
+              "LEFT JOIN technologies t ON FIND_IN_SET(t.technology_name, r.dependencies) " +
+              "WHERE r.category = 'potion' AND r.unlocked = 0 " +
+              "GROUP BY r.research_name", 
+              .@research_names$, .@item_ids, .@item_counts, .@contributed_counts, .@dependencies$);
+
+    .@menu$ = "";
+    for (.@i = 0; .@i < getarraysize(.@research_names$); .@i++) {
+        // Vérifier si toutes les dépendances sont débloquées
+        set .@all_dependencies_met, 1;
+        .@dependency_list$ = .@dependencies$[.@i];
+        while (.@dependency_list$ != "") {
+            // Trouver la position de la première virgule
+            .@comma_pos = -1;
+            for (.@j = 0; .@j < getstrlen(.@dependency_list$); .@j++) {
+                if (substr(.@dependency_list$, .@j, 1) == ",") {
+                    set .@comma_pos, .@j;
+                    break;
+                }
+            }
+
+            // Extraire une dépendance
+            if (.@comma_pos == -1) {
+                // Pas de virgule, extraire tout
+                set .@dependency$, .@dependency_list$;
+                set .@dependency_list$, "";
+            } else {
+                // Extraire jusqu'à la virgule
+                set .@dependency$, substr(.@dependency_list$, 0, .@comma_pos);
+                set .@dependency_list$, substr(.@dependency_list$, .@comma_pos + 1, getstrlen(.@dependency_list$) - .@comma_pos - 1);
+            }
+
+            // Vérifier si la dépendance est débloquée
+            query_sql("SELECT unlocked FROM technologies WHERE technology_name = '" + escape_sql(.@dependency$) + "'", .@is_unlocked);
+            if (.@is_unlocked == 0) {
+                set .@all_dependencies_met, 0;
+                break;
+            }
+        }
+
+        // Ajouter au menu uniquement si toutes les dépendances sont remplies
+        if (.@all_dependencies_met) {
+            .@menu$ = .@menu$ + .@research_names$[.@i] + ":";
+            set .@valid_researches[.@i], 1; // Marquer comme valide
+        } else {
+            set .@valid_researches[.@i], 0; // Marquer comme non valide
+        }
+    }
+
+    if (.@menu$ == "") {
+        mes "Aucune recherche de potion n'est disponible pour le moment.";
+        close;
+    }
+
+    .@choice = select(.@menu$) - 1;
+
+    // Vérifier si la recherche sélectionnée est valide
+    if (.@choice < 0 || .@choice >= getarraysize(.@valid_researches) || .@valid_researches[.@choice] == 0) {
+        mes "Une erreur s'est produite lors de votre sélection.";
+        close;
+    }
+
+    set .@research_name$, .@research_names$[.@choice];
+    set .@required_item_id, .@item_ids[.@choice];
+    set .@required_item_count, .@item_counts[.@choice];
+    set .@contributed_count, .@contributed_counts[.@choice];
+
+    mes "[Chercheur de Potions]";
+    mes "Pour compléter la recherche '" + .@research_name$ + "', vous devez donner " + .@required_item_count + " " + getitemname(.@required_item_id) + ".";
+    mes "Actuellement, " + .@contributed_count + " ont été collectés.";
+    next;
+
+    mes "Combien souhaitez-vous donner ?";
+    input .@contribution;
+
+    if (.@contribution <= 0 || countitem(.@required_item_id) < .@contribution) {
+        mes "Vous n'avez pas assez d'objets.";
+        close;
+    }
+
+    delitem .@required_item_id, .@contribution;
+    query_sql("UPDATE researches SET contributed_item_count = contributed_item_count + " + .@contribution + " WHERE research_name = '" + escape_sql(.@research_name$) + "'");
+
+    mes "Merci pour votre contribution !";
+
+    // Vérifier si la recherche est terminée
+    query_sql("SELECT contributed_item_count FROM researches WHERE research_name = '" + escape_sql(.@research_name$) + "'", .@current_count);
+    if (.@current_count >= .@required_item_count) {
+        query_sql("UPDATE researches SET unlocked = 1 WHERE research_name = '" + escape_sql(.@research_name$) + "'");
+        announce "La recherche '" + .@research_name$ + "' est terminée ! De nouvelles potions sont désormais disponibles.", bc_all;
+    }
+    close;
+}
+
+sh_fild01,193,162,3	script	PotionShopNPC	6,{
+
+    mes "[Potion Shop]";
+    mes "Bienvenue dans le magasin de potions !";
+    mes "Je vais vérifier les potions débloquées pour vous.";
+    next;
+
+    // Charger les objets débloqués liés aux recherches de type "potion"
+    query_sql("SELECT si.item_id, si.price " +
+              "FROM shop_items si " +
+              "INNER JOIN researches r " +
+              "ON si.research_name = r.research_name " +
+              "WHERE r.category = 'potion' AND r.unlocked = 1", 
+              .@item_ids, .@prices);
+
+    // Vérifier si des objets sont disponibles
+    if (getarraysize(.@item_ids) == 0) {
+        mes "Désolé, aucune potion n'est disponible pour le moment.";
+        close;
+    }
+
+    mes "Voici les potions disponibles :";
+    for (.@i = 0; .@i < getarraysize(.@item_ids); .@i++) {
+        // Vérifier si les données récupérées sont valides
+        if (getitemname(.@item_ids[.@i]) == "" || .@prices[.@i] <= 0) {
+            debugmes "ERREUR | L'objet avec ID " + .@item_ids[.@i] + " ou son prix est invalide.";
+            continue;
+        }
+        mes "- " + getitemname(.@item_ids[.@i]) + " (" + .@prices[.@i] + " Zeny)";
+    }
+    next;
+
+    // Construire le menu des objets disponibles
+    .@menu$ = "";
+    for (.@i = 0; .@i < getarraysize(.@item_ids); .@i++) {
+        .@menu$ = .@menu$ + getitemname(.@item_ids[.@i]) + " [" + .@prices[.@i] + " Zeny]:";
+    }
+
+    // Afficher le menu et obtenir le choix de l'utilisateur
+    .@choice = select(.@menu$) - 1;
+
+    // Vérifier si la sélection du joueur est valide
+    if (.@choice < 0 || .@choice >= getarraysize(.@item_ids)) {
+        mes "Une erreur s'est produite lors de votre sélection.";
+        close;
+    }
+
+    // Charger les informations de l'objet sélectionné
+    set .@item_id, .@item_ids[.@choice];
+    set .@price, .@prices[.@choice];
+
+    // Vérifier si l'objet est valide
+    if (getitemname(.@item_id) == "" || .@price <= 0) {
+        mes "L'objet que vous essayez d'acheter est invalide. Veuillez réessayer.";
+        close;
+    }
+
+    // Vérifier si le joueur a assez de Zeny
+    if (Zeny < .@price) {
+        mes "Désolé, vous n'avez pas assez de Zeny pour acheter " + getitemname(.@item_id) + ".";
+        close;
+    }
+
+    // Effectuer l'achat
+    set Zeny, Zeny - .@price;
+    getitem .@item_id, 1;
+
+    // Log pour le débogage
+    debugmes "Transaction réussie : Joueur " + strcharinfo(0) + " a acheté " + getitemname(.@item_id) + " pour " + .@price + " Zeny.";
+
+    mes "Merci pour votre achat de " + getitemname(.@item_id) + " !";
+    close;
+}

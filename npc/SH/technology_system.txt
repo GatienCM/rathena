@@ -1,34 +1,83 @@
-// Version CORRIGÉE basée sur ta suggestion, utilisant la bonne structure et la bonne variable pour OnPickup
+-	script	DiscoverySystemSQL	-1,{
+    OnInit:
+        // Création des tables SQL si elles n'existent pas encore
+        query_sql("CREATE TABLE IF NOT EXISTS technologies (" +
+            "id INT AUTO_INCREMENT PRIMARY KEY, " +
+            "technology_name VARCHAR(255) NOT NULL UNIQUE, " +
+            "mob_id INT, " +
+            "item_id INT, " +
+            "discovery_rate INT, " +
+            "unlocked TINYINT(1) DEFAULT 0, " +
+            "discovered_at TIMESTAMP NULL DEFAULT NULL, " +
+            "dependencies TEXT DEFAULT NULL, " +
+            "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
 
-// Associe ce script à l'item 512
--	script	PickupTestScript	512,{ // Utilise l'ItemID (512) et une seule accolade ouvrante
+        query_sql("CREATE TABLE IF NOT EXISTS researches (" +
+            "id INT AUTO_INCREMENT PRIMARY KEY, " +
+            "research_name VARCHAR(255) NOT NULL UNIQUE, " +
+            "category VARCHAR(50) NOT NULL, " +
+            "required_item_id INT NOT NULL, " +
+            "required_item_count INT NOT NULL, " +
+            "contributed_item_count INT DEFAULT 0, " +
+            "unlocked TINYINT(1) DEFAULT 0, " +
+			"dependencies TEXT DEFAULT NULL, " +
+            "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
 
-	// Le label OnPickup: DOIT être à l'intérieur des accolades principales {}
-	OnPickup:
-		// Utilise dispbottom pour afficher un message en bas de l'écran
-		dispbottom ">>> OnPickup déclenché ! ID Ramassé: " + getitemid; // Utilise getitemid ici
+        query_sql("CREATE TABLE IF NOT EXISTS shop_items (" +
+            "id INT AUTO_INCREMENT PRIMARY KEY, " +
+            "research_name VARCHAR(255) NOT NULL, " +
+            "item_id INT NOT NULL, " +
+            "price INT NOT NULL)");
 
-		// Vérifie si l'item ramassé est bien celui attendu (512)
-		if (getitemid == 512) {
-			dispbottom "Confirmation: Item 512 (Pomme) ramassé.";
-			// C'est ici que tu mettrais la logique de vérification/mise à jour de la variable globale,
-			// l'annonce serveur, le message au joueur, et le delitem.
-			// Exemple simplifié:
-			// .@status = getglobalreg("TPRD01");
-			// dispbottom "Statut global lu: " + .@status;
-			// if (.@status == 0) { setglobalreg("TPRD01",1); dispbottom "Variable globale mise à 1."; }
-			// delitem getitemid, 1; dispbottom "Item supprimé.";
+        // Charger les technologies dans la mémoire
+        query_sql("SELECT id, technology_name, mob_id, item_id, discovery_rate, unlocked FROM technologies", 
+                  .@tech_ids, .@tech_names$, .@mob_ids, .@item_ids, .@rates, .@unlocked);
 
-		} else {
-			// Optionnel: message si un autre item déclenche ce script (ne devrait pas arriver si bien lié)
-			dispbottom "Info: Item " + getitemid + " ramassé (pas 512).";
-		}
+        copyarray .tech_ids, .@tech_ids, getarraysize(.@tech_ids);
+        copyarray .tech_names$, .@tech_names$, getarraysize(.@tech_names$);
+        copyarray .mob_ids, .@mob_ids, getarraysize(.@mob_ids);
+        copyarray .item_ids, .@item_ids, getarraysize(.@item_ids);
+        copyarray .rates, .@rates, getarraysize(.@rates);
+        copyarray .unlocked, .@unlocked, getarraysize(.@unlocked);
 
-		// Termine l'exécution du label OnPickup
-		end;
+        // Définir les variables globales pour les technologies déjà débloquées
+        for (.@i = 0; .@i < getarraysize(.@tech_names$); .@i++) {
+            setd "$Tech_" + .@tech_names$[.@i], .@unlocked[.@i];
+        }
 
-	// D'autres labels comme OnInit pourraient être ici, mais toujours dans les accolades principales.
-	OnInit:
-	    end;
+        debugmes "DEBUG | Technologies chargées en mémoire.";
+        debugmes "DEBUG | Technologies disponibles : " + getarraysize(.tech_names$);
+        end;
 
-} // Accolade fermante finale du script principal
+    OnNPCKillEvent:
+        debugmes "DEBUG | OnNPCKillEvent déclenché. Monstre tué : " + killedrid;
+
+        for (.@i = 0; .@i < getarraysize(.mob_ids); .@i++) {
+            if (killedrid == .mob_ids[.@i]) {
+                debugmes "DEBUG | Monstre correspondant trouvé : " + killedrid + " pour : " + .tech_names$[.@i];
+
+                if (getd("$Tech_" + .tech_names$[.@i]) == 1) {
+                    debugmes "DEBUG | Technologie déjà débloquée globalement : " + .tech_names$[.@i];
+                    continue;
+                }
+
+                .@rate = .rates[.@i];
+                debugmes "DEBUG | Taux de découverte pour : " + .tech_names$[.@i] + " est de " + .@rate + "%";
+
+                if (rand(100) < .@rate) {
+                    debugmes "DEBUG | Découverte réussie pour : " + .tech_names$[.@i];
+                    query_sql("UPDATE technologies SET unlocked = 1, discovered_at = NOW() WHERE id = " + .tech_ids[.@i]);
+                    setd "$Tech_" + .tech_names$[.@i], 1;
+
+                    getitem .item_ids[.@i], 1;
+                    announce strcharinfo(0) + " a découvert une nouvelle technologie : " + .tech_names$[.@i] + " !", bc_all;
+                } else {
+                    debugmes "DEBUG | Échec du taux de découverte pour : " + .tech_names$[.@i];
+                }
+                end;
+            }
+        }
+
+        debugmes "DEBUG | Aucun monstre correspondant trouvé pour l'ID tué : " + killedrid;
+        end;
+}
